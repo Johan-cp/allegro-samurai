@@ -4,6 +4,8 @@
 #include <allegro5/allegro_image.h>
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_native_dialog.h>
+#include <allegro5/allegro_audio.h>
+#include <allegro5/allegro_acodec.h>
 
 #include "player/player.h"
 #include "zombie/zombie.h"
@@ -14,9 +16,14 @@
 
 bool inicializar_allegro()
 {
-    if (!al_init() || !al_install_keyboard() || !al_init_image_addon() || !al_init_primitives_addon() || !al_init_font_addon() || !al_init_ttf_addon())
+    if (!al_init() || !al_install_keyboard() || !al_init_image_addon() || !al_init_primitives_addon() || !al_init_font_addon() || !al_init_ttf_addon() || !al_install_audio() || !al_init_acodec_addon())
     {
         al_show_native_message_box(NULL, "Error", "Error", "No se pudo inicializar Allegro", NULL, ALLEGRO_MESSAGEBOX_ERROR);
+        return false;
+    }
+    if (!al_reserve_samples(1))
+    {
+        al_show_native_message_box(NULL, "Error", "Error", "No se pudo reservar canales de audio", NULL, ALLEGRO_MESSAGEBOX_ERROR);
         return false;
     }
     return true;
@@ -32,9 +39,9 @@ ALLEGRO_DISPLAY *crear_display(float pantalla_ancho, float pantalla_alto)
     return display;
 }
 
-ALLEGRO_FONT *cargar_fuente(const char *ruta)
+ALLEGRO_FONT *cargar_fuente(const char *ruta, int tamano)
 {
-    ALLEGRO_FONT *font = al_load_font(ruta, 24, 0);
+    ALLEGRO_FONT *font = al_load_font(ruta, tamano, 0);
     if (!font)
     {
         al_show_native_message_box(NULL, "Error", "Error", "No se pudo cargar la fuente", NULL, ALLEGRO_MESSAGEBOX_ERROR);
@@ -71,19 +78,39 @@ int main()
         return -1;
     }
 
-    ALLEGRO_FONT *font = cargar_fuente("./fonts/ProsperoBoldNbpRegular-ZZRB.ttf");
+    ALLEGRO_FONT *font = cargar_fuente("./fonts/ProsperoBoldNbpRegular-ZZRB.ttf", 24);
     if (!font)
     {
         al_destroy_display(display);
         return -1;
     }
 
-    ALLEGRO_BITMAP *fondo = al_load_bitmap("./assets/background.png");
+    ALLEGRO_FONT *font_grande = cargar_fuente("./fonts/ProsperoBoldNbpRegular-ZZRB.ttf", 48);
+    if (!font_grande)
+    {
+        al_destroy_display(display);
+        al_destroy_font(font);
+        return -1;
+    }
+
+    ALLEGRO_BITMAP *fondo = al_load_bitmap("./assets/fondo.png");
     if (!fondo)
     {
         al_destroy_display(display);
         al_destroy_font(font);
+        al_destroy_font(font_grande);
         al_show_native_message_box(NULL, "Error", "Error", "No se pudo cargar la imagen de fondo", NULL, ALLEGRO_MESSAGEBOX_ERROR);
+        return -1;
+    }
+
+    ALLEGRO_SAMPLE *sonido_golpe = al_load_sample("./sounds/sword-sound.wav");
+    if (!sonido_golpe)
+    {
+        al_destroy_display(display);
+        al_destroy_font(font);
+        al_destroy_font(font_grande);
+        al_destroy_bitmap(fondo);
+        al_show_native_message_box(NULL, "Error", "Error", "No se pudo cargar el sonido de golpe", NULL, ALLEGRO_MESSAGEBOX_ERROR);
         return -1;
     }
 
@@ -124,6 +151,9 @@ int main()
     int puntaje = 0;
     bool game_over = false;
 
+    // Variable para el color del fondo
+    bool fondo_negro = false;
+
     // Temporizador para la animación idle
     ALLEGRO_TIMER *idle_timer = al_create_timer(0.5);
     al_register_event_source(event_queue, al_get_timer_event_source(idle_timer));
@@ -162,6 +192,7 @@ int main()
                 {
                     game_over = false;
                     reiniciar_juego(player, zombies, puntaje, pantalla_ancho, pantalla_alto);
+                    fondo_negro = false; // Volver a fondo normal
                 }
             }
             else
@@ -182,6 +213,7 @@ int main()
                     break;
                 case ALLEGRO_KEY_J: // Tecla para golpear
                     player.golpear();
+                    al_play_sample(sonido_golpe, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL); // Reproducir sonido
                     break;
                 case ALLEGRO_KEY_ESCAPE:
                     running = false;
@@ -273,6 +305,7 @@ int main()
                     if (zombie->colision(player.x, player.y, 50, 50))
                     { // Ajustar el tamaño del jugador
                         game_over = true;
+                        fondo_negro = true; // Cambiar el fondo a negro cuando el juego termine
                         std::cout << "Colisión con zombie. GAME OVER.\n";
                         break;
                     }
@@ -281,12 +314,20 @@ int main()
         }
 
         // Dibujar fondo
-        al_draw_bitmap(fondo, 0, 0, 0);
+        if (fondo_negro)
+        {
+            al_clear_to_color(al_map_rgb(0, 0, 0));
+        }
+        else
+        {
+            al_draw_bitmap(fondo, 0, 0, 0);
+        }
 
         if (game_over)
         {
-            al_draw_text(font, al_map_rgb(255, 0, 0), pantalla_ancho / 2, pantalla_alto / 2 - 24, ALLEGRO_ALIGN_CENTER, "GAME OVER");
-            al_draw_text(font, al_map_rgb(255, 255, 255), pantalla_ancho / 2, pantalla_alto / 2 + 24, ALLEGRO_ALIGN_CENTER, "Presiona R para reiniciar");
+            al_draw_text(font_grande, al_map_rgb(255, 0, 0), pantalla_ancho / 2, pantalla_alto / 2 - 48, ALLEGRO_ALIGN_CENTER, "GAME OVER");
+            al_draw_textf(font, al_map_rgb(255, 255, 255), pantalla_ancho / 2, pantalla_alto / 2, ALLEGRO_ALIGN_CENTER, "Puntaje: %d", puntaje);
+            al_draw_text(font, al_map_rgb(255, 255, 255), pantalla_ancho / 2, pantalla_alto / 2 + 48, ALLEGRO_ALIGN_CENTER, "Presiona R para reiniciar");
         }
         else
         {
@@ -320,6 +361,8 @@ int main()
     al_destroy_event_queue(event_queue);
     al_destroy_display(display);
     al_destroy_font(font);
+    al_destroy_font(font_grande);
+    al_destroy_sample(sonido_golpe);
 
     std::cout << "Recursos liberados. Juego terminado.\n";
 
