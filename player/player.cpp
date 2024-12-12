@@ -4,165 +4,165 @@
 #include <allegro5/allegro_primitives.h>
 #include <allegro5/allegro_native_dialog.h>
 
-Player::Player(const char *ruta_idle1, const char *ruta_idle2, const char *ruta_walk1, const char *ruta_walk2, const char *ruta_walk3, const char *ruta_walk4, const char *rutas_golpe1[], const char *rutas_golpe2[], float pantalla_ancho, float pantalla_alto, float escala_x, float escala_y)
+Player::Player(const char *route_idle1, const char *route_idle2, const char *route_walk1, const char *route_walk2, const char *route_walk3, const char *route_walk4, const char *route_punch[], const char *route_punch2[], float screen_width, float screen_height, float scale_x, float scale_y)
 {
-    imagen_idle1 = al_load_bitmap(ruta_idle1);
-    imagen_idle2 = al_load_bitmap(ruta_idle2);
-    imagen_walk1 = al_load_bitmap(ruta_walk1);
-    imagen_walk2 = al_load_bitmap(ruta_walk2);
-    imagen_walk3 = al_load_bitmap(ruta_walk3);
-    imagen_walk4 = al_load_bitmap(ruta_walk4);
+    images_idle1 = al_load_bitmap(route_idle1);
+    images_idle2 = al_load_bitmap(route_idle2);
+    images_walk1 = al_load_bitmap(route_walk1);
+    images_walk2 = al_load_bitmap(route_walk2);
+    images_walk3 = al_load_bitmap(route_walk3);
+    images_walk4 = al_load_bitmap(route_walk4);
     for (int i = 0; i < 13; i++)
     {
-        imagen_golpe1[i] = al_load_bitmap(rutas_golpe1[i]);
+        images_punch1[i] = al_load_bitmap(route_punch[i]);
     }
     for (int i = 0; i < 11; i++)
     {
-        imagen_golpe2[i] = al_load_bitmap(rutas_golpe2[i]);
+        images_punch2[i] = al_load_bitmap(route_punch2[i]);
     }
-    if (!imagen_idle1 || !imagen_idle2 || !imagen_walk1 || !imagen_walk2 || !imagen_walk3 || !imagen_walk4 ||
-        !imagen_golpe1[0] || !imagen_golpe1[1] || !imagen_golpe1[2] || !imagen_golpe1[3] || !imagen_golpe1[4] ||
-        !imagen_golpe1[5] || !imagen_golpe1[6] || !imagen_golpe1[7] || !imagen_golpe1[8] || !imagen_golpe1[9] ||
-        !imagen_golpe1[10] || !imagen_golpe1[11] || !imagen_golpe1[12] || !imagen_golpe2[0] || !imagen_golpe2[1] ||
-        !imagen_golpe2[2] || !imagen_golpe2[3] || !imagen_golpe2[4] || !imagen_golpe2[5] || !imagen_golpe2[6] ||
-        !imagen_golpe2[7] || !imagen_golpe2[8] || !imagen_golpe2[9] || !imagen_golpe2[10])
+    if (!images_idle1 || !images_idle2 || !images_walk1 || !images_walk2 || !images_walk3 || !images_walk4 ||
+        !images_punch1[0] || !images_punch1[1] || !images_punch1[2] || !images_punch1[3] || !images_punch1[4] ||
+        !images_punch1[5] || !images_punch1[6] || !images_punch1[7] || !images_punch1[8] || !images_punch1[9] ||
+        !images_punch1[10] || !images_punch1[11] || !images_punch1[12] || !images_punch2[0] || !images_punch2[1] ||
+        !images_punch2[2] || !images_punch2[3] || !images_punch2[4] || !images_punch2[5] || !images_punch2[6] ||
+        !images_punch2[7] || !images_punch2[8] || !images_punch2[9] || !images_punch2[10])
     {
         al_show_native_message_box(NULL, "Error", "Error", "No se pudieron cargar las imágenes del jugador", NULL, ALLEGRO_MESSAGEBOX_ERROR);
     }
-    this->escala_x = escala_x;
-    this->escala_y = escala_y;
-    x = pantalla_ancho / 2 - (al_get_bitmap_width(imagen_idle1) * escala_x) / 2;
-    y = pantalla_alto / 2 - (al_get_bitmap_height(imagen_idle1) * escala_y) / 2;
-    en_movimiento = false;
-    mirando_izquierda = false;
-    golpeando = false;
-    animacion_golpe = 0; // Inicialmente la primera animación de golpe
-    frame_actual = 0;
-    frame_golpe = 0;
+    this->scale_x = scale_x;
+    this->scale_y = scale_y;
+    x = screen_width / 2 - (al_get_bitmap_width(images_idle1) * scale_x) / 2;
+    y = screen_height / 2 - (al_get_bitmap_height(images_idle1) * scale_y) / 2;
+    in_movement = false;
+    facing_left = false;
+    puching = false;
+    punch_animation = 0;
+    actual_frame = 0;
+    punch_frame = 0;
 }
 
 Player::~Player()
 {
-    al_destroy_bitmap(imagen_idle1);
-    al_destroy_bitmap(imagen_idle2);
-    al_destroy_bitmap(imagen_walk1);
-    al_destroy_bitmap(imagen_walk2);
-    al_destroy_bitmap(imagen_walk3);
-    al_destroy_bitmap(imagen_walk4);
+    al_destroy_bitmap(images_idle1);
+    al_destroy_bitmap(images_idle2);
+    al_destroy_bitmap(images_walk1);
+    al_destroy_bitmap(images_walk2);
+    al_destroy_bitmap(images_walk3);
+    al_destroy_bitmap(images_walk4);
     for (int i = 0; i < 13; i++)
     {
-        al_destroy_bitmap(imagen_golpe1[i]);
+        al_destroy_bitmap(images_punch1[i]);
     }
     for (int i = 0; i < 11; i++)
     {
-        al_destroy_bitmap(imagen_golpe2[i]);
+        al_destroy_bitmap(images_punch2[i]);
     }
 }
 
-void Player::dibujar()
+void Player::draw()
 {
-    ALLEGRO_BITMAP *imagen_actual;
+    ALLEGRO_BITMAP *actual_image;
 
-    if (golpeando)
+    if (puching)
     {
-        if (animacion_golpe == 0)
+        if (punch_animation == 0)
         {
-            imagen_actual = imagen_golpe1[frame_golpe];
+            actual_image = images_punch1[punch_frame];
         }
         else
         {
-            imagen_actual = imagen_golpe2[frame_golpe];
+            actual_image = images_punch2[punch_frame];
         }
     }
-    else if (en_movimiento)
+    else if (in_movement)
     {
-        if (frame_actual < 3)
+        if (actual_frame < 3)
         {
-            imagen_actual = imagen_walk1;
+            actual_image = images_walk1;
         }
-        else if (frame_actual < 6)
+        else if (actual_frame < 6)
         {
-            imagen_actual = imagen_walk2;
+            actual_image = images_walk2;
         }
-        else if (frame_actual < 9)
+        else if (actual_frame < 9)
         {
-            imagen_actual = imagen_walk3;
+            actual_image = images_walk3;
         }
         else
         {
-            imagen_actual = imagen_walk4;
+            actual_image = images_walk4;
         }
     }
     else
     {
-        imagen_actual = (frame_actual % 2 == 0) ? imagen_idle1 : imagen_idle2;
+        actual_image = (actual_frame % 2 == 0) ? images_idle1 : images_idle2;
     }
 
-    if (mirando_izquierda)
+    if (facing_left)
     {
-        al_draw_scaled_bitmap(imagen_actual, 0, 0, al_get_bitmap_width(imagen_actual), al_get_bitmap_height(imagen_actual), x + al_get_bitmap_width(imagen_actual) * escala_x, y, -al_get_bitmap_width(imagen_actual) * escala_x, al_get_bitmap_height(imagen_actual) * escala_y, 0);
+        al_draw_scaled_bitmap(actual_image, 0, 0, al_get_bitmap_width(actual_image), al_get_bitmap_height(actual_image), x + al_get_bitmap_width(actual_image) * scale_x, y, -al_get_bitmap_width(actual_image) * scale_x, al_get_bitmap_height(actual_image) * scale_y, 0);
     }
     else
     {
-        al_draw_scaled_bitmap(imagen_actual, 0, 0, al_get_bitmap_width(imagen_actual), al_get_bitmap_height(imagen_actual), x, y, al_get_bitmap_width(imagen_actual) * escala_x, al_get_bitmap_height(imagen_actual) * escala_y, 0);
+        al_draw_scaled_bitmap(actual_image, 0, 0, al_get_bitmap_width(actual_image), al_get_bitmap_height(actual_image), x, y, al_get_bitmap_width(actual_image) * scale_x, al_get_bitmap_height(actual_image) * scale_y, 0);
     }
 }
 
-void Player::cambiar_imagen_idle()
+void Player::change_images_idle()
 {
-    frame_actual = (frame_actual + 1) % 2; // Alternar entre 0 y 1
+    actual_frame = (actual_frame + 1) % 2;
 }
 
-void Player::cambiar_imagen_walk()
+void Player::change_images_walk()
 {
-    frame_actual = (frame_actual + 1) % 12; // Alternar entre 0 y 11 para 12 fotogramas de caminar
+    actual_frame = (actual_frame + 1) % 12;
 }
 
-void Player::cambiar_imagen_golpe()
+void Player::change_images_punch()
 {
-    if (animacion_golpe == 0)
+    if (punch_animation == 0)
     {
-        frame_golpe = (frame_golpe + 1) % 13; // Alternar entre 0 y 12 para la primera animación de golpe
-        if (frame_golpe == 0)
+        punch_frame = (punch_frame + 1) % 13;
+        if (punch_frame == 0)
         {
-            golpeando = false;   // Terminar la animación de golpe
-            animacion_golpe = 1; // Cambiar a la segunda animación de golpe
+            puching = false;
+            punch_animation = 1;
         }
     }
     else
     {
-        frame_golpe = (frame_golpe + 1) % 11; // Alternar entre 0 y 10 para la segunda animación de golpe
-        if (frame_golpe == 0)
+        punch_frame = (punch_frame + 1) % 11;
+        if (punch_frame == 0)
         {
-            golpeando = false;   // Terminar la animación de golpe
-            animacion_golpe = 0; // Cambiar a la primera animación de golpe
+            puching = false;
+            punch_animation = 0;
         }
     }
 }
 
-void Player::mover(float dx, float dy)
+void Player::move(float dx, float dy)
 {
-    if (!golpeando)
+    if (!puching)
     {
         x += dx;
         y += dy;
-        en_movimiento = (dx != 0 || dy != 0);
+        in_movement = (dx != 0 || dy != 0);
         if (dx < 0)
         {
-            mirando_izquierda = true;
+            facing_left = true;
         }
         else if (dx > 0)
         {
-            mirando_izquierda = false;
+            facing_left = false;
         }
     }
 }
 
-void Player::golpear()
+void Player::punch()
 {
-    if (!golpeando)
+    if (!puching)
     {
-        golpeando = true;
-        frame_golpe = 0; // Iniciar la animación de golpe desde el primer fotograma
+        puching = true;
+        punch_frame = 0;
     }
 }
