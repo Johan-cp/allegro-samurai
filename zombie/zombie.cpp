@@ -36,7 +36,7 @@ void Zombie::draw()
 {
     if (isAlive)
     {
-        float scale = 2.0; // Factor de escala para hacer la imagen más grande
+        float scale = 2.0;
         al_draw_scaled_bitmap(image.get(), 0, 0, width, height, x, y, width * scale, height * scale, 0);
     }
 }

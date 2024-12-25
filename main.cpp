@@ -209,7 +209,7 @@ int main()
                     break;
                 case ALLEGRO_KEY_J:
                     player.punch();
-                    al_play_sample(punch_sound, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL); // Reproducir sonido
+                    al_play_sample(punch_sound, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, NULL);
                     break;
                 case ALLEGRO_KEY_ESCAPE:
                     running = false;
